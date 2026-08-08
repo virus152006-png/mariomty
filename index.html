@@ -219,12 +219,12 @@
             align-items: center; width: 100%;
         }
         .book-container {
-            perspective: 1200px; width: 100%; max-width: 520px;
-            aspect-ratio: 4 / 3; /* قيمة افتراضية، بتتغير تلقائيًا حسب مقاس كل صورة */
-            max-height: 70vh;
+            perspective: 1200px;
+            width: 520px; max-width: 100%;
+            height: 400px; /* قيمة مبدئية بس، بيتم استبدالها فورًا بالمقاس الحقيقي عبر JS */
             position: relative; margin: 0 auto;
             border-radius: 24px;
-            transition: aspect-ratio 0.35s var(--ease-lux);
+            transition: width 0.35s var(--ease-lux), height 0.35s var(--ease-lux);
             animation: gentleLetterFloat 4.5s ease-in-out infinite;
         }
         .book-container::after {
@@ -283,7 +283,7 @@
             85% { transform: translate(0, -4px) scale(1.005) rotate(0deg); }
             100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
         }
-        .jump-card img { width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.15); }
+        .jump-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .caption-below {
             margin-top: 16px; text-align: center; color: #e6d5ff;
             font-size: 1.25rem; font-weight: 600; letter-spacing: 0.5px;
@@ -1240,12 +1240,38 @@ function switchPage(pageIndex) {
             }, { passive: true });
         }
 
-        // بتظبط مقاس الحاوية (book-container) حسب أبعاد الصورة الحقيقية اللي جاية من اللينك
+        // بتظبط مقاس الحاوية (book-container) بالظبط على نسبة الصورة الحقيقية
+        // من غير ما يفضل فراغ من الجناب أو من فوق وتحت
         function applyImageAspectRatio(img) {
             const bookWrap = document.querySelector('.book-container');
             if (!bookWrap || !img.naturalWidth || !img.naturalHeight) return;
-            bookWrap.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
+            window.currentPhotoImgEl = img; // نحتفظ بمرجع للصورة الحالية عشان إعادة الحساب عند تغيير حجم الشاشة
+
+            const parent = bookWrap.parentElement;
+            const isSmall = window.innerWidth <= 420;
+            const isMedium = window.innerWidth <= 600;
+            // أقصى عرض متاح حسب مساحة الشاشة الفعلية (نفس المنطق اللي كان في الـ media queries)
+            const maxW = Math.min(
+                (parent ? parent.clientWidth : window.innerWidth) - 4,
+                isSmall ? 300 : (isMedium ? 380 : 520)
+            );
+            const maxH = window.innerHeight * (isSmall ? 0.42 : (isMedium ? 0.5 : 0.62));
+
+            const ratio = img.naturalWidth / img.naturalHeight;
+            let w = maxW;
+            let h = w / ratio;
+            if (h > maxH) {
+                h = maxH;
+                w = h * ratio;
+            }
+            bookWrap.style.width = Math.round(w) + 'px';
+            bookWrap.style.height = Math.round(h) + 'px';
         }
+
+        // إعادة حساب المقاس تلقائيًا لو المستخدم غيّر حجم الشاشة أو لف الموبايل
+        window.addEventListener('resize', function () {
+            if (window.currentPhotoImgEl) applyImageAspectRatio(window.currentPhotoImgEl);
+        });
 
         function buildPhotoCard(photoIndex) {
             const card = document.createElement('div');
