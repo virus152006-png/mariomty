@@ -553,6 +553,21 @@
 
     <script>
         // ===================================================================
+        //  مسح كل الكوكيز والحفظ الخاص بالموقع أول ما الصفحة تفتح
+        //  (localStorage, sessionStorage, cookies) عشان الموقع يبدأ نضيف كل مرة
+        // ===================================================================
+        (function clearSiteStorage() {
+            try { localStorage.clear(); } catch (e) {}
+            try { sessionStorage.clear(); } catch (e) {}
+            try {
+                document.cookie.split(';').forEach(function (c) {
+                    document.cookie = c.replace(/^ +/, '')
+                        .replace(/=.*/, '=;expires=' + new Date(0).toUTCString() + ';path=/');
+                });
+            } catch (e) {}
+        })();
+
+        // ===================================================================
         //  المتغيرات القابلة للاستبدال من GitHub Secrets
         //  (سيتم استبدالها أثناء البناء)
         // ===================================================================
@@ -612,6 +627,9 @@
         // ===================================================================
         //  التأثيرات الصوتية (مضاعفة الصوت + تأثيرات مميزة)
         // ===================================================================
+        // 🔊 المتغير اللي بيتحكم في صوت كل المؤثرات (heartbeat, happy, transition, message, gift)
+        // كل ما رفعت الرقم ده كل ما الصوت بقى أعلى. القيمة الحالية = ضعف الأصلي.
+        const SFX_VOLUME_MULTIPLIER = 2.0;
         let audioCtx = null;
         function getAudioContext() {
             if (!audioCtx) {
@@ -626,7 +644,7 @@
                 const ctx = getAudioContext();
                 const now = ctx.currentTime;
                 const masterGain = ctx.createGain();
-                masterGain.gain.value = 0.6;
+                masterGain.gain.value = 0.6 * SFX_VOLUME_MULTIPLIER;
                 masterGain.connect(ctx.destination);
                 const reverbGain = ctx.createGain();
                 reverbGain.gain.value = 0.2;
@@ -691,7 +709,7 @@
                 const startTimes = [0, 0.14, 0.28];
 
                 const masterGain = ctx.createGain();
-                masterGain.gain.value = 0.6;
+                masterGain.gain.value = 0.6 * SFX_VOLUME_MULTIPLIER;
                 masterGain.connect(ctx.destination);
 
                 const reverbGain = ctx.createGain();
@@ -749,7 +767,7 @@
                 const delays = [0, 0.12, 0.25];
 
                 const masterGain = ctx.createGain();
-                masterGain.gain.value = 0.5;
+                masterGain.gain.value = 0.5 * SFX_VOLUME_MULTIPLIER;
                 masterGain.connect(ctx.destination);
 
                 // صدى طويل وكبير
@@ -811,7 +829,7 @@
                 const note2 = baseFreq * 1.25; // فاصل زمني لطيف
 
                 const masterGain = ctx.createGain();
-                masterGain.gain.value = 0.5;
+                masterGain.gain.value = 0.5 * SFX_VOLUME_MULTIPLIER;
                 masterGain.connect(ctx.destination);
 
                 const reverbGain = ctx.createGain();
@@ -872,7 +890,7 @@
                 const delays = [0, 0.15, 0.3, 0.5];
 
                 const masterGain = ctx.createGain();
-                masterGain.gain.value = 0.6;
+                masterGain.gain.value = 0.6 * SFX_VOLUME_MULTIPLIER;
                 masterGain.connect(ctx.destination);
 
                 // صدى طويل جداً
@@ -973,6 +991,27 @@
                 url: url,
                 caption: PHOTO_CAPTIONS[i] || `صورة ${i+1}`
             }));
+            preloadAllPhotos(); // نحمّل كل الصور مقدمًا عشان التقليب بينهم يبقى سلس من غير لاج
+        }
+
+        // بنحمّل الصور الست كلها في الذاكرة أول ما الموقع يفتح، عشان لما المستخدم يقلب
+        // بين الصور مايحصلش تحميل جديد كل مرة (وده كان سبب اللاج)
+        function preloadAllPhotos() {
+            photos.forEach((p) => {
+                const preImg = new Image();
+                preImg.src = p.url;
+                p.naturalWidth = null;
+                p.naturalHeight = null;
+                if (preImg.complete && preImg.naturalWidth) {
+                    p.naturalWidth = preImg.naturalWidth;
+                    p.naturalHeight = preImg.naturalHeight;
+                } else {
+                    preImg.addEventListener('load', function () {
+                        p.naturalWidth = preImg.naturalWidth;
+                        p.naturalHeight = preImg.naturalHeight;
+                    }, { once: true });
+                }
+            });
         }
 
         function spawnSparkle(x, y, emoji) {
@@ -1279,6 +1318,7 @@ function switchPage(pageIndex) {
             const img = document.createElement('img');
             img.src = photos[photoIndex].url;
             img.alt = photos[photoIndex].caption;
+            img.style.cursor = 'zoom-in';
             img.onerror = function () {
                 this.src = 'https://placehold.co/600x500/2d104a/b388ff?text=💜';
             };
@@ -1287,8 +1327,53 @@ function switchPage(pageIndex) {
             } else {
                 img.addEventListener('load', function () { applyImageAspectRatio(img); }, { once: true });
             }
+            img.addEventListener('click', function (e) {
+                e.stopPropagation();
+                openPhotoLightbox(img.src);
+            });
             card.appendChild(img);
             return card;
+        }
+
+        // ===== تكبير الصورة (Lightbox) =====
+        // ضغطة على الصورة تفتحها بحجم أكبر، وضغطة تانية على الصورة أو في أي مكان بالشاشة تقفلها
+        let lightboxEl = null;
+        function openPhotoLightbox(src) {
+            if (lightboxEl) closePhotoLightbox();
+            lightboxEl = document.createElement('div');
+            lightboxEl.id = 'photoLightbox';
+            lightboxEl.style.cssText = `
+                position: fixed; inset: 0; z-index: 5000;
+                background: rgba(5, 2, 10, 0.92);
+                display: flex; align-items: center; justify-content: center;
+                cursor: zoom-out; padding: 20px;
+                animation: lightboxFadeIn 0.25s ease;
+                backdrop-filter: blur(6px);
+            `;
+            const bigImg = document.createElement('img');
+            bigImg.src = src;
+            bigImg.style.cssText = `
+                max-width: 94vw; max-height: 92vh;
+                border-radius: 18px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 60px rgba(139,92,246,0.25);
+                cursor: zoom-out;
+            `;
+            lightboxEl.appendChild(bigImg);
+            lightboxEl.addEventListener('click', closePhotoLightbox);
+            document.body.appendChild(lightboxEl);
+            // إضافة الأنيميشن مرة واحدة بس
+            if (!document.getElementById('lightboxStyle')) {
+                const style = document.createElement('style');
+                style.id = 'lightboxStyle';
+                style.textContent = '@keyframes lightboxFadeIn { from { opacity: 0; } to { opacity: 1; } }';
+                document.head.appendChild(style);
+            }
+        }
+        function closePhotoLightbox() {
+            if (lightboxEl) {
+                lightboxEl.remove();
+                lightboxEl = null;
+            }
         }
 
         function updatePhotoCaption(idx) {
