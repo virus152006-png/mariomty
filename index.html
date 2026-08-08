@@ -637,7 +637,7 @@
         // ===================================================================
         // 🔊 المتغير اللي بيتحكم في صوت كل المؤثرات (heartbeat, happy, transition, message, gift)
         // كل ما رفعت الرقم ده كل ما الصوت بقى أعلى. القيمة الحالية = ضعف الأصلي.
-        const SFX_VOLUME_MULTIPLIER = 3.5;
+        const SFX_VOLUME_MULTIPLIER = 10.0;
         let audioCtx = null;
         function getAudioContext() {
             if (!audioCtx) {
@@ -953,7 +953,7 @@
 
         const bgMusic = new Audio(MUSIC_URL);
         bgMusic.loop = true;
-        bgMusic.volume = 0.02;
+        bgMusic.volume = 0.1;
         bgMusic.addEventListener('loadeddata', function() { this.volume = 0.1; });
 
         const appRoot = document.getElementById('appRoot');
@@ -1596,9 +1596,9 @@ function switchPage(pageIndex) {
 
         function goToPasswordPhase() {
             if (!musicStarted) {
-                bgMusic.volume = 0.02;
+                bgMusic.volume = 0.1;
                 bgMusic.play().then(() => {
-                    bgMusic.volume = 0.02;
+                    bgMusic.volume = 0.1;
                     musicStarted = true;
                 }).catch(() => {});
             }
