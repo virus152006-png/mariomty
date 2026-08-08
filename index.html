@@ -27,6 +27,11 @@
             --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        html {
+            background: #0a0612;
+            min-height: 100%;
+            overscroll-behavior-y: none;
+        }
         body {
             min-height: 100vh;
             background:
@@ -40,6 +45,7 @@
             justify-content: center;
             position: relative;
             overflow-x: hidden;
+            overscroll-behavior-y: none;
             padding: 20px;
         }
         .floating-particles, .floating-particles-front {
@@ -224,7 +230,9 @@
             height: 400px; /* قيمة مبدئية بس، بيتم استبدالها فورًا بالمقاس الحقيقي عبر JS */
             position: relative; margin: 0 auto;
             border-radius: 24px;
-            transition: width 0.35s var(--ease-lux), height 0.35s var(--ease-lux);
+            /* ملحوظة: مفيش transition على width/height هنا عمدًا، لأن تحريك أبعاد
+               العنصر (layout properties) بالـ CSS transition بيسبب لاج جامد أثناء
+               التنقل بين الصور (كل فريم بيعمل reflow كامل). التغيير بيحصل فورًا بدل ما يتحرك بسلاسة. */
             animation: gentleLetterFloat 4.5s ease-in-out infinite;
         }
         .book-container::after {
@@ -253,35 +261,35 @@
             box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 40px rgba(124, 58, 237, 0.15);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: #1a0a2e; border: 1px solid rgba(160, 110, 255, 0.25);
-            will-change: transform, opacity, filter; z-index: 2;
+            will-change: transform, opacity; z-index: 2;
         }
         .jump-card.jump-out-next { animation: jumpOutNext 0.5s cubic-bezier(0.55, 0, 1, 0.45) forwards; z-index: 1; }
         .jump-card.jump-out-prev { animation: jumpOutPrev 0.5s cubic-bezier(0.55, 0, 1, 0.45) forwards; z-index: 1; }
         @keyframes jumpOutNext {
-            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
-            35% { transform: translate(-16%, -60px) scale(0.96) rotate(-6deg); opacity: 1; filter: blur(1px); }
-            100% { transform: translate(-70%, 40px) scale(0.55) rotate(-14deg); opacity: 0; filter: blur(3px); }
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1 }
+            35% { transform: translate(-16%, -60px) scale(0.96) rotate(-6deg); opacity: 1 }
+            100% { transform: translate(-70%, 40px) scale(0.55) rotate(-14deg); opacity: 0 }
         }
         @keyframes jumpOutPrev {
-            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
-            35% { transform: translate(16%, -60px) scale(0.96) rotate(6deg); opacity: 1; filter: blur(1px); }
-            100% { transform: translate(70%, 40px) scale(0.55) rotate(14deg); opacity: 0; filter: blur(3px); }
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1 }
+            35% { transform: translate(16%, -60px) scale(0.96) rotate(6deg); opacity: 1 }
+            100% { transform: translate(70%, 40px) scale(0.55) rotate(14deg); opacity: 0 }
         }
         .jump-card.jump-in-next { animation: jumpInNext 0.68s var(--ease-lux) forwards; }
         .jump-card.jump-in-prev { animation: jumpInPrev 0.68s var(--ease-lux) forwards; }
         @keyframes jumpInNext {
-            0% { transform: translate(65%, 55px) scale(0.55) rotate(10deg); opacity: 0; filter: blur(3px); }
-            45% { transform: translate(-4%, -26px) scale(1.03) rotate(-2deg); opacity: 1; filter: blur(0); }
+            0% { transform: translate(65%, 55px) scale(0.55) rotate(10deg); opacity: 0 }
+            45% { transform: translate(-4%, -26px) scale(1.03) rotate(-2deg); opacity: 1 }
             68% { transform: translate(1%, 6px) scale(0.99) rotate(0.5deg); }
             85% { transform: translate(0, -4px) scale(1.005) rotate(0deg); }
-            100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+            100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1 }
         }
         @keyframes jumpInPrev {
-            0% { transform: translate(-65%, 55px) scale(0.55) rotate(-10deg); opacity: 0; filter: blur(3px); }
-            45% { transform: translate(4%, -26px) scale(1.03) rotate(2deg); opacity: 1; filter: blur(0); }
+            0% { transform: translate(-65%, 55px) scale(0.55) rotate(-10deg); opacity: 0 }
+            45% { transform: translate(4%, -26px) scale(1.03) rotate(2deg); opacity: 1 }
             68% { transform: translate(-1%, 6px) scale(0.99) rotate(-0.5deg); }
             85% { transform: translate(0, -4px) scale(1.005) rotate(0deg); }
-            100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+            100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1 }
         }
         .jump-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .caption-below {
@@ -757,11 +765,13 @@
         }
 
         // ----- تأثير مميز جداً للتنقل بين الصور (ناعم، دافئ، كوزي) -----
+        // ملحوظة: تم تبسيط التأثير ده (إزالة الـ vibrato والصدى المعقد) لأنه كان
+        // بيبني عدد كبير من الـ audio nodes في نفس لحظة أنيميشن تقليب الصورة،
+        // وده كان بيساهم في اللاج أثناء التنقل بين الصور خصوصاً على الموبايل.
         function playPhotoTransitionSound() {
             try {
                 const ctx = getAudioContext();
                 const now = ctx.currentTime;
-                // نغمات منخفضة جداً مع صدى طويل
                 const notes = [130, 164, 196]; // C3, E3, G3 (منخفضة ودافئة)
                 const durations = [0.3, 0.3, 0.4];
                 const delays = [0, 0.12, 0.25];
@@ -770,20 +780,6 @@
                 masterGain.gain.value = 0.5 * SFX_VOLUME_MULTIPLIER;
                 masterGain.connect(ctx.destination);
 
-                // صدى طويل وكبير
-                const reverbGain = ctx.createGain();
-                reverbGain.gain.value = 0.4;
-                const delay = ctx.createDelay(2.0);
-                delay.delayTime.value = 0.5;
-                const feedback = ctx.createGain();
-                feedback.gain.value = 0.5;
-                delay.connect(feedback);
-                feedback.connect(delay);
-                delay.connect(reverbGain);
-                reverbGain.connect(ctx.destination);
-                masterGain.connect(delay);
-
-                // اهتزاز خفيف جداً
                 notes.forEach((freq, i) => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
@@ -791,30 +787,15 @@
                     gain.connect(masterGain);
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + delays[i]);
-                    // vibrato بسيط
-                    const vib = ctx.createOscillator();
-                    vib.frequency.value = 2.5;
-                    const vibGain = ctx.createGain();
-                    vibGain.gain.value = 2;
-                    vib.connect(vibGain);
-                    vibGain.connect(osc.frequency);
-                    vib.start(now + delays[i]);
-                    vib.stop(now + delays[i] + durations[i]);
-
-                    gain.gain.setValueAtTime(0.10, now + delays[i]); // مستوى عالٍ نسبياً لكن ناعم
+                    gain.gain.setValueAtTime(0.10, now + delays[i]);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + delays[i] + durations[i]);
                     osc.start(now + delays[i]);
                     osc.stop(now + delays[i] + durations[i]);
                 });
 
                 setTimeout(() => {
-                    try {
-                        delay.disconnect();
-                        feedback.disconnect();
-                        reverbGain.disconnect();
-                        masterGain.disconnect();
-                    } catch (e) {}
-                }, 1200);
+                    try { masterGain.disconnect(); } catch (e) {}
+                }, 800);
             } catch (e) { /* silent */ }
         }
 
@@ -1460,7 +1441,7 @@ function switchPage(pageIndex) {
                 const bookWrap = document.querySelector('.book-container');
                 if (bookWrap) {
                     const rect = bookWrap.getBoundingClientRect();
-                    spawnBurst(rect.left + rect.width / 2, rect.top + rect.height - 20, 10, '✨');
+                    spawnBurst(rect.left + rect.width / 2, rect.top + rect.height - 20, 5, '✨'); // قللنا العدد من 10 لـ 5 لتخفيف الحمل أثناء التنقل
                 }
                 // ===== تأثير مميز عند التنقل بين الصور =====
                 playPhotoTransitionSound();
