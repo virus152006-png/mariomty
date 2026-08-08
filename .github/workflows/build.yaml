@@ -1,0 +1,46 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Build HTML with Secrets
+        run: node build.js
+        env:
+          SECRETPASS: ${{ secrets.SECRETPASS }}
+          PHOTO_URLSPHOTO1: ${{ secrets.PHOTO_URLSPHOTO1 }}
+          PHOTO_URLSPHOTO2: ${{ secrets.PHOTO_URLSPHOTO2 }}
+          PHOTO_URLSPHOTO3: ${{ secrets.PHOTO_URLSPHOTO3 }}
+          PHOTO_URLSPHOTO4: ${{ secrets.PHOTO_URLSPHOTO4 }}
+          PHOTO_URLSPHOTO5: ${{ secrets.PHOTO_URLSPHOTO5 }}
+          PHOTO_URLSPHOTO6: ${{ secrets.PHOTO_URLSPHOTO6 }}
+          MUSICURL: ${{ secrets.MUSICURL }}
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true
+
